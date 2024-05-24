@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "paths": {
+      "features/*": ["features/*"],
+      "services/*": ["services/*"],
+      "layouts/*": ["layouts/*"],
+      "shared/*": ["shared/*"],
+      "storage/*": ["storage/*"],
+      "icons/*": ["icons/*"],
+      "static/*": ["static/*"],
+      "assets/*": ["assets/*"],
+      "@i18n": ["../i18n.ts"]
+    }
+  }
+}

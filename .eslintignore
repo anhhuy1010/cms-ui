@@ -1,0 +1,7 @@
+node_modules
+.deployment
+.circleci
+.next
+assets
+next.config.js
+package.json

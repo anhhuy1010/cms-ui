@@ -1,0 +1,133 @@
+name: CI-diqit-microservice-cms-ui
+
+on:
+#  pull_request:
+#    types: [opened,synchronize]
+  push:
+    branches:
+      - master
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  SERVICE_NAME: diqit-microservice-cms-ui
+  AWS_REGION: ap-southeast-1
+  AWS_ACCOUNT_ID: 713273531260
+  ENVIRONMENT: dev
+  
+jobs:
+  run_unit_tests:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4.1.1
+        - name: exec
+          run: |
+            git log -3
+            cat .git/config
+            ls -la
+
+
+  pre_build:
+      runs-on: ubuntu-latest
+      needs: run_unit_tests
+      steps:
+        - name: exec
+          uses: actions/checkout@v4.1.1
+
+
+  master_build:
+      runs-on: ubuntu-latest
+      needs: run_unit_tests
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4.1.1
+
+        - name: Configure AWS Credentials 2
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-region: ap-southeast-1
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_ECR_DOCKER }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ECR_DOCKER }}
+
+        - name: Login to Amazon ECR
+          id: login-ecr
+          uses: aws-actions/amazon-ecr-login@v2
+
+        - name: Build, tag, and push docker image to Amazon ECR
+          env:
+            GITHUB_ACCESS_KEY: ${{ secrets.GH_ACCESS_TOKEN }}
+
+          run: |
+            echo "ENVIRONMENT=dev" >> .build
+            echo "BUILD_TIMESTAMP=$(date +'%Y.%m.%d %H:%M:%S')" >> .build
+            echo "BUILD_NUM=${{github.run_number}}" >> .build
+            ECR_REPO=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME
+            docker build \
+              --no-cache -f .docker/Dockerfile-test \
+              --build-arg GITHUB_ACCESS_KEY=${GITHUB_ACCESS_KEY} \
+              -t app .
+            docker tag app ${ECR_REPO}:$ENVIRONMENT-${GITHUB_SHA}
+            docker tag app ${ECR_REPO}:$ENVIRONMENT-latest
+            docker push ${ECR_REPO}:$ENVIRONMENT-${GITHUB_SHA}
+            docker push ${ECR_REPO}:$ENVIRONMENT-latest
+
+
+  deploy_to_dev:
+      runs-on: ubuntu-latest
+      needs: master_build
+      env:
+        CLUSTER_NAME: diqit-dev
+        NAMESPACE: travel-sunflower
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4.1.1
+
+        - name: Configure AWS Credentials 2
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-region: ap-southeast-1
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEPLOYUSER }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEPLOYUSER }}
+
+        - name: Connect EKS
+          run: |
+            aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+
+        - name: Image Patching
+          run: |
+            envsubst < .deployment/patch_deployment_dev.yaml > patchset
+            kubectl patch deployment ${SERVICE_NAME} -n $NAMESPACE --patch-file patchset
+
+
+  deploy_to_s3:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4.1.1
+
+        - name: Configure AWS Credentials 2
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-region: ap-southeast-1
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_P_TRAVEL_SERVICE }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_P_TRAVEL_SERVICE }}
+
+        - name: NPM build
+          run: |
+            npm install --silent
+            npm run build:dev
+
+        - name: S3 Upload
+          run: |
+            aws s3 sync  build/  s3://travel-diqit-microservice-cms-ui/ --delete
+
+        - name: Clear cache
+          run: |
+            aws cloudfront create-invalidation --distribution-id E3UPFK4Z88CRGJ --paths "/*"
+
+
+
+
+
+

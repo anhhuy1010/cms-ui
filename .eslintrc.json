@@ -1,0 +1,115 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "plugin:prettier/recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "plugins": [
+    "prettier",
+    "@typescript-eslint",
+    "simple-import-sort"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2021
+  },
+  "parser": "@typescript-eslint/parser",
+  "rules": {
+    "prettier/prettier": [
+      "error",
+      {
+        "endOfLine": "auto"
+      }
+    ],
+    "template-curly-spacing": [
+      "warn",
+      "never"
+    ],
+    // "indent": ["warn", 2, {"ignoredNodes": ["TemplateLiteral"]}],
+    "quotes": [
+      "warn",
+      "double"
+    ],
+    // "no-unused-vars": "warn",
+    "no-empty-pattern": "off",
+    "no-extra-boolean-cast": "off",
+    "no-empty": "off",
+    "no-useless-escape": "warn",
+    "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/ban-types": "off",
+    // "@typescript-eslint/no-unused-vars": [
+    //   "warn"
+    // ],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "semi": [
+      2,
+      "always"
+    ],
+    "max-len": [
+      "off",
+      {
+        "ignoreUrls": true,
+        "ignoreTemplateLiterals": true,
+        "ignoreComments": false,
+        "code": 80
+      }
+    ],
+    "simple-import-sort/imports": "warn",
+    "simple-import-sort/exports": "warn"
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.js",
+        "**/*.ts",
+        "**/*.tsx"
+      ],
+      "rules": {
+        "simple-import-sort/imports": [
+          "error",
+          {
+            "groups": [
+              // `react` first, `next` second, then packages starting with a character
+              [
+                "^react$",
+                "^next",
+                "^[a-z]"
+              ],
+              // Packages starting with `@`
+              [
+                "^@"
+              ],
+              // Packages starting with `~`
+              [
+                "^~"
+              ],
+              // Imports starting with `../`
+              [
+                "^\\.\\.(?!/?$)",
+                "^\\.\\./?$"
+              ],
+              // Imports starting with `./`
+              [
+                "^\\./(?=.*/)(?!/?$)",
+                "^\\.(?!/?$)",
+                "^\\./?$"
+              ],
+              // Style imports
+              [
+                "^.+\\.s?css$"
+              ],
+              // Side effect imports
+              [
+                "^\\u0000"
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "ignorePatterns": ["**/*.css","**/*.scss"]
+}
